@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Random;
- import java.util.concurrent.locks.ReentrantLock;
-// TODO (Feature 3):               import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Semaphore;
 
 // ANSI Color Codes for enhanced terminal output (same as Assignment 1)
 class Colors {
@@ -135,8 +135,26 @@ class ReadyQueue {
     // Protects the shared ready queue and its thread-to-process map.
     private final ReentrantLock queueLock = new ReentrantLock();
 
-    // TODO Feature 3: declare the counting semaphore that counts the processes waiting in the ready queue here
+    // One permit for each process waiting in the ready queue.
+    private final Semaphore availableProcesses = new Semaphore(0);
+    private boolean shutdownSignaled = false;
 
+// Wake all waiting CPUs once when the simulation finishes.
+public void signalShutdown() {
+    queueLock.lock();
+    try {
+        if (!shutdownSignaled) {
+            shutdownSignaled = true;
+            availableProcesses.release(SharedStats.totalCPUs);
+        }
+    } finally {
+        queueLock.unlock();
+    }
+}
+// Wait until a process is available or shutdown is signaled.
+public void waitForAvailableProcess() throws InterruptedException {
+    availableProcesses.acquire();
+}
     // Add a process to the ready queue (new process, or a process that did not finish its quantum)
     public void add(Process process) {
        
@@ -150,7 +168,7 @@ class ReadyQueue {
             queueLock.unlock();
         }
 
-        // TODO Feature 3: signal that one more process is available in the queue
+        availableProcesses.release();
 
         System.out.println(Colors.BLUE + "  ➕ " + Colors.BOLD + Colors.CYAN + process.getName() + Colors.RESET +
                 Colors.BLUE + " (Priority: " + process.getPriority() + ") added to ready queue" + Colors.RESET +
@@ -305,19 +323,19 @@ class CpuWorker extends Thread {
     public void run() {
         while (SharedStats.getCompletedProcessCount() < SharedStats.totalProcesses) {
 
-            // TODO Feature 3: replace this polling loop by a blocking wait on the counting semaphore
-            Thread thread = readyQueue.poll();
-            if (thread == null) {
-                // ⚠️ BUSY WAITING: the CPU keeps checking an empty queue instead of sleeping until
-                // a process is available. It wastes CPU time and needs the "completed == total" test above to stop.
-                SharedStats.busyWaitPolls.incrementAndGet();      // (counted for the verification block)
-                try {
-                    Thread.sleep(20);
-                } catch (InterruptedException e) {
-                    return;
-                }
-                continue;
-            }
+            try {
+            readyQueue.waitForAvailableProcess();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+
+        // A shutdown permit wakes the CPU so it can exit.
+        if (SharedStats.getCompletedProcessCount() == SharedStats.totalProcesses) {
+            return;
+        }
+
+        Thread thread = readyQueue.poll();
 
             Process process = readyQueue.processOf(thread);
             System.out.println(Colors.MAGENTA + "  ┌─ [CPU-" + cpuId + "] picks " + Colors.BRIGHT_CYAN +
@@ -336,8 +354,10 @@ class CpuWorker extends Thread {
                 readyQueue.add(process);         // not finished: back to the ready queue
             }
 
-            // TODO Feature 3: when the LAST process has completed, wake up the CPUs that are blocked on the
-            // semaphore so that they can terminate (otherwise they would wait forever!)
+            // Wake waiting CPUs after all processes finish.
+        if (SharedStats.getCompletedProcessCount() == SharedStats.totalProcesses) {
+            readyQueue.signalShutdown();
+        }
         }
     }
 }
