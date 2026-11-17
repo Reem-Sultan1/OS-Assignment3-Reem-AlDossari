@@ -32,11 +32,11 @@
 
 | Field | Your Answer |
 |-------|-------------|
-| **Full Name** | [Write your full name here] |
-| **Student ID** | [Write your student ID here] |
-| **University Email** | [yourid]@std.psau.edu.sa |
-| **GitHub Username** | [your-github-username] |
-| **Repository Link** | [Paste your repository link here] |
+| **Full Name** | Reem AlDossari |
+| **Student ID** | 446051846 |
+| **University Email** | 446051846@std.psau.edu.sa |
+| **GitHub Username** | Reem-Sultan1 |
+| **Repository Link** |https://github.com/Reem-Sultan1/OS-Assignment3-Reem-AlDossari. |
  
 ---
 
@@ -132,68 +132,96 @@
 
 ## Your Development Log
 
-### Entry 1 - [Date and Time]
+### Entry 1 - November 15, 2026, approximately 10:35 PM
+
 **What I did**:
+Set up my GitHub repository and ran the starter simulation.
 
 **Details**:
+I forked the official starter repository, renamed my fork, and cloned it in VS Code. I changed studentID to 446051846, committed the change, and pushed it to GitHub. I ran the starter and saved its verification output before making any synchronization changes.
 
 **Challenges**:
+Git initially refused to create my commit because my name and email were not configured. The starter also reported failures in the verification block.
 
 **Solution**:
+I configured my Git name and university email for this repository, then completed the commit and push. I saved the original output so I could compare it with the results after implementing synchronization.
 
 **Time spent**:
+30 minutes.
 
 ---
 
-### Entry 2 - [Date and Time]
+### Entry 2 - November 15, 2026, approximately 11:05 PM
+
 **What I did**:
+Implemented and tested Feature 1 to protect the shared ready queue.
 
 **Details**:
+I added a ReentrantLock named queueLock to ReadyQueue. I used it in add(), poll(), processOf(), and snapshot() to protect accesses to list and map. Every lock was released in a finally block. I tested this feature five times.
 
 **Challenges**:
+I accidentally duplicated the local thread declaration in add() and missed a closing brace while editing snapshot(). The verification counters also continued to show mismatches after the queue changes.
 
 **Solution**:
+I removed the duplicate declaration and corrected the closing brace. I checked that all four queue methods used the same lock. The runs completed all 10 processes, while the remaining statistics mismatches and busy waiting were left for Features 2 and 3.
 
 **Time spent**:
+ 35 minutes.
+---
+
+### Entry 3 - November 15, 2026, approximately 11:50 PM
+
+**What I did**:
+Implemented Feature 2 to protect the shared statistics.
+
+**Details**:
+I added one ReentrantLock named statsLock in SharedStats. I used it in the three update methods and the three getters. Each method releases the lock in a finally block. I chose one lock to keep the locking rules simple, although separate locks could allow independent counters to be accessed concurrently.
+
+**Challenges**:
+After Feature 1, the simulation completed all processes, but contextSwitchCount and totalServiceTime still differed from their expected values. Concurrent updates could read the same old value and overwrite each other.
+
+**Solution**:
+I protected each complete read-modify-write sequence and used the same lock for the getters. In the first three test runs, the results matched 17 context switches, 10 completed processes, and 62665 ms of service time. Busy-waiting polls remained above zero for Feature 3 to address.
+
+**Time spent**:
+ 20 minutes.
+---
+
+### Entry 4 - November 16, 2026, approximately 5:45 PM
+
+**What I did**:
+Implemented Feature 3 using a counting semaphore and a clean shutdown signal.
+
+**Details**:
+I initialized availableProcesses to zero because the ready queue starts empty. Each add() call releases one permit after adding a process. CpuWorker calls waitForAvailableProcess() before polling the queue. I removed the busy-waiting branch and added a completion check after acquiring a permit.
+
+**Challenges**:
+CPUs waiting on acquire() needed to wake up when all processes finished. I also accidentally pasted signalShutdown() twice, which caused duplicate declarations.
+
+**Solution**:
+I removed the duplicate code and used shutdownSignaled under queueLock to send the shutdown signal once. signalShutdown() releases SharedStats.totalCPUs permits so waiting CPUs can exit. The verification output showed 17 context switches, 10 completed processes, 62665 ms of service time, and zero busy-waiting polls.
+
+**Time spent**:
+ 25 minutes.
 
 ---
 
-### Entry 3 - [Date and Time]
+### Entry 5 - November 17, 2026, approximately 9:00 PM
+
 **What I did**:
+Started completing the assignment documentation in MY_WORK.md.
 
 **Details**:
+I entered my name, student ID, university email, GitHub username, and repository link. I documented the setup, ready queue lock, statistics lock, and semaphore implementation using my actual work dates and saved outputs.
 
 **Challenges**:
+I needed to distinguish the original starter failures from the results after each feature. I also needed to explain why some verification mismatches remained during the intermediate stages.
 
 **Solution**:
+I used my saved starter output and screenshots to describe the results at each stage. I recorded how Feature 1 protected the queue, Feature 2 corrected the statistics, and Feature 3 reduced busy-waiting polls to zero.
 
 **Time spent**:
-
----
-
-### Entry 4 - [Date and Time]
-**What I did**:
-
-**Details**:
-
-**Challenges**:
-
-**Solution**:
-
-**Time spent**:
-
----
-
-### Entry 5 - [Date and Time]
-**What I did**:
-
-**Details**:
-
-**Challenges**:
-
-**Solution**:
-
-**Time spent**:
+ 20 minutes so far.
 
 ---
 
@@ -240,7 +268,7 @@
 
 **Your Answer:** *(5-7 sentences)*
 
-[Write your answer here.]
+I learned that shared data can become inconsistent when several threads access it at the same time. A counter update involves reading a value, changing it, and writing it back, so two threads can overwrite each other's updates. In ReadyQueue, I used queueLock to protect the queue and its map, including iteration in snapshot(). In SharedStats, I protected both the updates and the getters with statsLock. I learned that finally releases a lock even when a method returns from inside try. The semaphore also showed me how CPUs can block until work becomes available and wake up when the simulation finishes.
 
 ## Question 2: What was the most challenging part of this assignment?
 
@@ -248,7 +276,7 @@
 
 **Your Answer:** *(5-7 sentences)*
 
-[Write your answer here.]
+The most challenging part was handling the shutdown of CPUs waiting on the semaphore. When the queue is empty, acquire() blocks a CPU until a permit becomes available. After the last process finishes, there may be no more add() calls to release permits. I needed to understand how those waiting CPUs would wake up and stop. I used signalShutdown() to release totalCPUs permits and checked completion immediately after acquire(). I also protected shutdownSignaled with queueLock so the shutdown signal would be sent only once.
 
 ## Question 3: How did you overcome the challenges you faced?
 
@@ -256,7 +284,7 @@
 
 **Your Answer:** *(5-7 sentences)*
 
-[Write your answer here.]
+I worked on one feature at a time so I could understand what each change affected. I saved the original verification output before modifying the synchronization code. I asked for step-by-step help and checked where each lock and semaphore operation belonged. When I duplicated a declaration or misplaced a brace, I reviewed the surrounding method and corrected it. I ran the program repeatedly and compared the observed statistics with the expected values. Seeing the first three checks pass after Feature 2 and all four pass after Feature 3 helped me connect each change to its result.
 
 ## Question 4: Where can synchronization concepts be applied in real-world applications?
 
@@ -264,7 +292,7 @@
 
 **Your Answer:** *(5-7 sentences)*
 
-[Write your answer here.]
+Synchronization can be used in applications where several threads share data or resources. In a banking application, concurrent updates to the same account balance must be coordinated to prevent lost updates. In a ticket booking system, checking and reserving the same seat must be coordinated so two customers cannot both reserve it. A print service can use a shared queue protected by a lock, similar to ReadyQueue in this assignment. A counting semaphore can make worker threads wait until a new print job arrives. Shared website statistics also need protected updates, similar to the counters in SharedStats.
 
 ### Optional: What would you like to learn more about?
 
@@ -298,20 +326,31 @@
 
 **Your Answer:** *(3-5 sentences)*
 
-[Write your answer here.]
+In my original starter run, the observed context switches, completed processes, and total service time were all zero, compared with expected values of 17, 10, and 62665 ms. The output also contained an exception trace through ReadyQueue.snapshot(), so these zero values do not by themselves demonstrate a lost counter update. After Feature 1, one run completed all 10 processes but recorded only 14 of the expected 17 context switches, showing three missing increments. A lost update can occur when two threads read the same counter value and then both write the same incremented value. On a real machine, thread preemption can cause this interleaving without RaceWindow.pause(), and the timing makes the bug difficult to reproduce consistently.
 
 Verification block of the **original starter**:
+
 ```
-[Paste the verification block (or the exception/watchdog message) of the starter here]
+═══ VERIFICATION (expected values are computed from YOUR seed) ═══
+  Context switches (quanta executed)     expected 17       observed 0        ✘ MISMATCH
+  Completed processes                    expected 10       observed 0        ✘ MISMATCH
+  Total service time (ms)                expected 62665    observed 0        ✘ MISMATCH
+  Busy-waiting polls (must be 0)         expected 0        observed 0        ✔
+  ✘ At least one check failed (see the ✘ lines above): a race condition or busy waiting is still present.
 ```
 
 Verification block of **my final version**:
 ```
-[Paste the verification block of your final version here (all lines ✔)]
+═══ VERIFICATION (expected values are computed from YOUR seed) ═══
+  Context switches (quanta executed)     expected 17       observed 17       ✔
+  Completed processes                    expected 10       observed 10       ✔
+  Total service time (ms)                expected 62665    observed 62665    ✔
+  Busy-waiting polls (must be 0)         expected 0        observed 0        ✔
+  ✔ All shared values are consistent.
 ```
 
 **Explanation of the timeline:**
-[Explain the lost update step by step.]
+For example, suppose contextSwitchCount is 5. A process thread running on CPU-1 reads 5 into its local tmp and pauses inside RaceWindow.pause(). A process thread running on CPU-2 also reads 5 before either thread writes its update. Both threads then write 6, so the final value is 6 instead of 7. statsLock prevents this by protecting the entire read-pause-write sequence.
 
 ## Question 2: Critical Sections and Lock Granularity
 
@@ -321,12 +360,18 @@ Verification block of **my final version**:
 
 **Your Answer:** *(3-5 sentences)*
 
-[Write your answer here.]
+I used queueLock to protect list and map in ReadyQueue.add(), poll(), processOf(), and snapshot(), and to protect shutdownSignaled in signalShutdown(). I used one statsLock for the three statistics update methods and their three getters because it keeps the locking rules simple, although it serializes accesses to independent counters. The queue uses a separate lock so queue operations and statistics operations can proceed independently. Mutual exclusion is provided by acquiring the appropriate lock, and finally releases it so waiting threads can continue. The critical sections are finite and contain no semaphore waits, which supports progress, but the default nonfair ReentrantLock does not guarantee bounded waiting or acquisition in arrival order.
 
 | Critical section (variable / method) | Lock used | Why it needs protection |
 |---|---|---|
-| [e.g., `ReadyQueue.poll()`] | [lock name] | [reason] |
-| [...] | [...] | [...] |
+| list and map in ReadyQueue.add() | queueLock | Adds both entries before another CPU accesses them. |
+| list in ReadyQueue.poll() | queueLock | Makes checking, reading, and removing the head atomic relative to other queue operations. |
+| map in ReadyQueue.processOf() | queueLock | Coordinates reads with map updates. |
+| list and map in ReadyQueue.snapshot() | queueLock | Prevents changes during iteration. |
+| shutdownSignaled in ReadyQueue.signalShutdown() | queueLock | Ensures shutdown permits are released once. |
+| contextSwitchCount in incrementContextSwitch() and getContextSwitchCount() | statsLock | Prevents lost increments and coordinates reads. |
+| completedProcessCount in incrementCompletedProcess() and getCompletedProcessCount() | statsLock | Protects the completion count used by the CPUs. |
+| totalServiceTime in addServiceTime() and getTotalServiceTime() | statsLock | Prevents lost additions and coordinates reads. |
 
 ## Question 3: Busy Waiting vs Semaphore
 
@@ -336,7 +381,7 @@ Verification block of **my final version**:
 
 **Your Answer:** *(3-5 sentences)*
 
-[Write your answer here.]
+The starter repeatedly polled an empty queue, slept for 20 ms, and tried again, causing repeated wakeups and unnecessary checking. My original starter run recorded zero busy-waiting polls while failing the other checks, whereas one run after Feature 1 recorded 61 polls. During normal operation, availableProcesses tracks permits for queued work, and acquire() blocks a CPU when no permit is available. Its initial value is zero because the queue starts empty, and after the 10 initial add() calls it is 10 before the CPUs start acquiring permits. At completion, signalShutdown() releases totalCPUs permits once so blocked CPUs wake up, detect completion, and exit, otherwise they could remain blocked indefinitely.
 
 ## Question 4: Classical Problems and Deadlock
 
@@ -347,24 +392,24 @@ Verification block of **my final version**:
 **Your Answer:** *(3-5 sentences)*
 
 **Classical problem and roles**:
-[Name the problem; who is the producer, who is the consumer?]
+This is the producer-consumer problem with a shared ready queue. main produces the initial processes, while CPUs consume queued work and also act as producers when they re-enqueue unfinished processes.
 
 **Semaphores for a bounded queue (name and initial value)**:
-[Name the three semaphores and their initial values.]
+For an initially empty queue of capacity K, the three semaphores are empty initialized to K, full initialized to 0, and mutex initialized to 1.
 
 **Deadlock scenario and prevention**:
-[Describe the scenario and the necessary condition you would break.]
+If the queue is full and a producer acquires mutex before waiting on empty, it holds mutex while waiting for a consumer to free a slot, but the consumer also needs mutex to remove an item. Acquiring the resource semaphore before mutex prevents this scenario by avoiding holding the mutex while waiting for a queue resource, breaking hold and wait in this scenario.
 
 ## Summary
 
 **Key concepts I understood through these questions:**
-1.
-2.
-3.
+1. How race conditions cause lost updates and how locks protect critical sections.
+2. How a counting semaphore blocks CPUs until work is available.
+3. Why waiting CPUs need a shutdown signal when all processes finish.
 
 **Concepts I need to study more:**
-1.
-2.
+1. Lock fairness, starvation, and bounded waiting.
+2. Deadlock prevention and synchronization in bounded queues.
 
 ---
 
